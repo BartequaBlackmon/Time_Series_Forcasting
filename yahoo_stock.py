@@ -15,7 +15,7 @@ def load_data(file):
 # Function to perform ARIMA forecasting
 def arima_forecast( data, steps):
     close_data = data['Close']
-    model = ARIMA(data, order=(5,1,0))
+    model = ARIMA(close_data, order=(5,1,0))
     model_fit = model.fit()
     forecast = model_fit.forecast(steps=steps)
     return forecast
@@ -33,28 +33,64 @@ def main ():
         # Load data
         data = load_data(file)
 
-        st.subheader('Time Series Data')
+        st.subheader("Data")
         st.write(data.head(5)) # displaying the first 5 rows
 
         # Plot original time series
         st.subheader('Original Time Series Plot')
         fig, ax = plt.subplots()  # Create Matplotlib figure and axis objects
-        ax.plot(data.index, data.iloc[:, 0])  # Plot the time series data
+        ax.plot(data.index, data['Close'], label ='Close Price', color='blue') 
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Close Price')
+        ax.legend()
         st.pyplot(fig) 
+
+        # Add section divider
+        st.markdown("---")
+
+        # plot Open vs Close
+        st.subheader('Open vs Close')
+        fig, ax = plt.subplots()  # Create Matplotlib figure and axis objects
+        ax.plot(data.index, data['Close'], label ='Close Price', color='blue') 
+        ax.plot(data.index, data['Open'], label = 'Open Price', color='green', linestyle='--')
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Price')
+        ax.legend()
+        st.pyplot(fig) 
+
+        # Add interactive widget for forecasting
+        st.sidebar.title("Forecasting Settings")
+        steps = st.sidebar.slider("Number of Forecast Steps", min_value=1, max_value=100, value=12)
 
         # Perform forecasting
         forecast = arima_forecast(data, steps)
 
+        # Plot Volumn
+        st.subheader('Volume Plot')
+        fig, ax = plt.subplots()
+        ax.plot(data.index, data['Volume'], label='Volumn')
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Volume')
+        ax.legend()
+        st.pyplot(fig)
+
+        # Add section divider
+        st.markdown("---")
+
         # Plot forecasted values
         st.subheader('Forecasted Value')
         plt.plot(data.index, data, label='Original')
-        plt.plot(pd.date_range(start=data.index[-1], periods=steps+1, freq='MS')[1:], forecast, label='Forecast', color='red')
+        forecast_dates = pd.date_range(start=data.index[-1], periods=steps+1, freq='MS')[1:]
+        fig, ax = plt.subplots()
+        ax.plot(data.index, data['Close'], label='Close Price', color='blue')
+        ax.plot(forecast_dates, forecast, label='Forecast', color='red', linestyle='--')
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Close Price')
         plt.legend()
-        st.pyplot()
+        st.pyplot(fig)
 
         # Show forecasted values as a table
-        forecast_datas = pd.date_range(start=data.index[-1], periods=steps+1, freq='MS')[1:]
-        forecast_df = pd.DataFrame({'Date': forecast_datas, 'Forecast': forecast})
+        forecast_df = pd.DataFrame({'Date': forecast_dates, 'Forecast': forecast})
         st.subheader('Forecasted Values (Next {} Steps)'.format(steps))
         st.write(forecast_df)
 
